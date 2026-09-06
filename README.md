@@ -1,6 +1,6 @@
 # Merb Starterpack
 
-Full-stack **Turborepo** monorepo starter kit with **Bun**, featuring production-ready **authentication, role-based authorization (RBAC), MongoDB, and BullMQ email notifications** — plus Docker orchestration and a complete CI/CD pipeline with GitHub Actions.
+Full-stack **Turborepo** monorepo starter kit with **Bun**, featuring production-ready **authentication, role-based authorization (RBAC), MongoDB, and BullMQ email notifications** — plus Docker orchestration, a complete CI/CD pipeline with GitHub Actions, and **IaaS infrastructure automation (Pulumi + Ansible)** for four environments.
 
 ## ✨ Features
 
@@ -14,7 +14,8 @@ Full-stack **Turborepo** monorepo starter kit with **Bun**, featuring production
 | ⚡ **Monorepo** | [Turborepo](https://turbo.build) — parallel tasks, remote-style caching across backend & frontend |
 | 🎨 **Frontend** | TanStack Start (React 19) with login / register / protected dashboard pages |
 | 🐳 **Docker** | Multi-stage `oven/bun:1` image, Compose stack (api + worker + mongo + redis) with healthchecks |
-| 🔄 **CI/CD** | GitHub Actions: typecheck → test → frontend build → Docker build (GHA cache) → **full-stack compose smoke test** |
+| ☁️ **IaaS + IaC** | Pulumi (provisioning) + Ansible (config & deploy) — 4 environments: development, staging, stress-test, production |
+| 🔄 **CI/CD** | GitHub Actions: typecheck → test → frontend build → Docker build (GHA cache) → **full-stack compose smoke test** → optional IaaS deploy |
 | ✅ **Validation** | Zod schemas on every request body |
 
 ## 📁 Project Structure
@@ -42,13 +43,14 @@ merb-starterpack/
 │   └── .env.example
 ├── frontend/                 # TanStack Start (React 19, Vite, Tailwind v4)
 │   └── src/routes/           # /, /login, /register, /dashboard (protected)
-├── .github/workflows/        # CI (ci.yml) + IaaS deploy (deploy.yml)
 ├── infra/
 │   ├── pulumi/               # IaC: Droplet + firewall per environment
 │   ├── ansible/              # config & deploy: hardening, Docker, app
 │   ├── scripts/              # deploy.sh orchestrator, gen-inventory.sh
 │   └── stress-test/          # k6 load tests
-├── .github/workflows/ci.yml  # CI/CD pipeline
+├── .github/workflows/
+│   ├── ci.yml                # CI pipeline (typecheck/test/build/docker/smoke)
+│   └── deploy.yml            # IaaS deploy via Ansible (manual dispatch)
 └── docker-compose.yml        # api + worker + mongo + redis
 ```
 
@@ -294,14 +296,18 @@ Services:
 
 ## 🔄 CI/CD Pipeline
 
-`.github/workflows/ci.yml` runs on every push / PR to `main`:
+**CI — `.github/workflows/ci.yml`** (runs on every push / PR to `main`):
 
 1. **Backend** — workspace install → turbo typecheck → turbo test
 2. **Frontend** — workspace install → turbo build
 3. **Docker** — multi-stage image build (with GHA layer cache) + `docker compose config` validation
 4. **Smoke test** *(on push to main)* — boots the full compose stack, waits for health, then exercises register → login → `/auth/me` end-to-end
 
-To deploy from CI, add your registry/deploy credentials under **Settings → Secrets and variables → Actions** and extend the `docker` job with a `push` step.
+**CD — `.github/workflows/deploy.yml`** (manual `workflow_dispatch`, environment-gated):
+
+Runs the Ansible deploy playbook against the selected environment (development / staging / stress-test / production). Requires per-environment GitHub variables & secrets — see the [Infrastructure section](#-infrastructure-iaas--iac-pulumi--ansible).
+
+> Provisioning (Pulumi) is intentionally manual — creating/destroying cloud resources from a pipeline is risky. CI handles repeatable app deploys only.
 
 ## 🧪 Testing & Quality (via Turborepo)
 
