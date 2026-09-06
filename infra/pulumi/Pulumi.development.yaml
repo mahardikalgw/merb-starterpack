@@ -1,0 +1,4 @@
+# development — smallest, cheapest instance
+config:
+  merb-starterpack-infra:region: sgp1
+  merb-starterpack-infra:dropletSize: s-1vcpu-1gb

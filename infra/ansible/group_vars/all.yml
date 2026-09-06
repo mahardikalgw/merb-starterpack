@@ -1,0 +1,21 @@
+# Global variables shared by all environments.
+# Environment-specific values live in group_vars/<env>/vars.yml
+# Secrets live in group_vars/<env>/vault.yml (ANSIBLE VAULT — never commit plaintext!)
+
+app_user: deploy
+app_group: deploy
+app_dir: /opt/merb
+
+repo_url: https://github.com/mahardikalgw/merb-starterpack.git
+app_version: main
+
+# Application settings (non-secret)
+mail_from: "Merb Starter <no-reply@example.com>"
+seed_admin_email: admin@example.com
+seed_on_start: "true"
+
+# Ports exposed on the host firewall
+fw_allowed_tcp_ports:
+  - 22
+  - 80
+  - 443

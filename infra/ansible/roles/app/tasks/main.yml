@@ -1,0 +1,60 @@
+---
+# Deploy the application: clone repo, render .env, docker compose up, health check.
+# Runs as the deploy user (member of the docker group) — no root needed.
+
+- name: Ensure app directory
+  ansible.builtin.file:
+    path: "{{ app_dir }}"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0755"
+
+- name: Clone / update repository
+  ansible.builtin.git:
+    repo: "{{ repo_url }}"
+    dest: "{{ app_dir }}"
+    version: "{{ app_version }}"
+    force: true
+  register: git_checkout
+
+- name: Render backend .env
+  ansible.builtin.template:
+    src: merb.env.j2
+    dest: "{{ app_dir }}/backend/.env"
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0600"
+  register: env_file
+
+- name: Build & start the stack (api, worker, mongo, redis)
+  ansible.builtin.command:
+    cmd: docker compose up -d --build
+    chdir: "{{ app_dir }}"
+  environment:
+    JWT_ACCESS_SECRET: "{{ vault_jwt_access_secret }}"
+    JWT_REFRESH_SECRET: "{{ vault_jwt_refresh_secret }}"
+    SMTP_URL: "{{ vault_smtp_url }}"
+    MAIL_FROM: "{{ mail_from }}"
+    SEED_ADMIN_EMAIL: "{{ seed_admin_email }}"
+    SEED_ADMIN_PASSWORD: "{{ vault_seed_admin_password }}"
+    APP_URL: "https://{{ app_domain }}"
+    SEED_ON_START: "{{ seed_on_start }}"
+    MONGODB_URI: "{{ vault_mongodb_uri | default('mongodb://mongo:27017/merb-starterpack') }}"
+    REDIS_URL: "{{ vault_redis_url | default('redis://redis:6379') }}"
+  changed_when: true
+
+- name: Wait for API health
+  ansible.builtin.uri:
+    url: http://localhost:3000/api/health
+    status_code: 200
+    timeout: 5
+  register: health
+  until: health.status == 200
+  retries: 30
+  delay: 5
+
+- name: Prune unused Docker images
+  ansible.builtin.command:
+    cmd: docker image prune -f
+  changed_when: false

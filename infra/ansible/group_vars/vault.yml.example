@@ -1,0 +1,26 @@
+# =============================================================================
+# ANSIBLE VAULT TEMPLATE — copy to group_vars/<env>/vault.yml then encrypt:
+#
+#   ansible-vault create group_vars/development/vault.yml
+#
+# Each environment gets its OWN vault with DIFFERENT secrets.
+# Never commit a decrypted vault.yml!
+# =============================================================================
+
+# SSH public key authorized for the deploy user (same key as Pulumi's sshPublicKey)
+vault_ssh_public_key: "ssh-ed25519 AAAA... you@example.com"
+
+# Application secrets (generate: openssl rand -hex 32)
+vault_jwt_access_secret: "change-me-access-secret-openssl-rand-hex-32"
+vault_jwt_refresh_secret: "change-me-refresh-secret-openssl-rand-hex-32"
+
+# Initial admin account (used when seed_on_start=true)
+vault_seed_admin_password: "Admin123!"
+
+# SMTP for outbound email; leave empty to log emails instead of sending
+vault_smtp_url: ""
+
+# Optional: external managed services (e.g. MongoDB Atlas / Redis Cloud).
+# If set, they override the compose-internal mongo/redis.
+# vault_mongodb_uri: "mongodb+srv://..."
+# vault_redis_url: "rediss://..."

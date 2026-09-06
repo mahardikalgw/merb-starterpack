@@ -36,6 +36,12 @@ coverage
 # Docker
 .docker/
 
+# Infrastructure (Pulumi build output, Ansible artifacts & secrets)
+infra/pulumi/bin/
+infra/ansible/.vault-pass
+infra/ansible/inventory/*/hosts.auto.yml
+infra/ansible/*.retry
+
 # Editor & IDE
 .idea
 .vscode/*

@@ -1,0 +1,4 @@
+# staging — mirrors production topology at reduced cost
+config:
+  merb-starterpack-infra:region: sgp1
+  merb-starterpack-infra:dropletSize: s-2vcpu-4gb

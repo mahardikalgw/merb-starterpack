@@ -1,0 +1,59 @@
+name: Deploy (IaaS)
+
+# Deploys the application to a server via Ansible.
+# Provisioning (Pulumi) is intentionally manual — creating/destroying cloud
+# resources from CI is dangerous. Run `infra/scripts/deploy.sh <env> provision`
+# locally for that; this workflow only handles repeatable app deploys.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        required: true
+        options:
+          - development
+          - staging
+          - stress-test
+          - production
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy → ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: pipx install ansible-core
+
+      - name: Write SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Write vault password
+        run: |
+          echo "${{ secrets.ANSIBLE_VAULT_PASSWORD }}" > /tmp/.vault-pass
+          chmod 600 /tmp/.vault-pass
+
+      - name: Generate inventory (server IP)
+        run: ./infra/scripts/gen-inventory.sh ${{ inputs.environment }}
+        env:
+          MERB_SERVER_HOST: ${{ vars.SERVER_HOST }}
+
+      - name: Deploy
+        run: |
+          cd infra/ansible
+          ansible-playbook \
+            -i inventory/${{ inputs.environment }}/hosts.yml \
+            -i inventory/${{ inputs.environment }}/hosts.auto.yml \
+            --vault-password-file /tmp/.vault-pass \
+            playbooks/deploy.yml

@@ -1,0 +1,3 @@
+---
+# staging environment
+app_domain: staging.merb.example.com

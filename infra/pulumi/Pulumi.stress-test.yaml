@@ -1,0 +1,5 @@
+# stress-test — beefier instance for load testing (k6)
+# Run k6 against this env: k6 run infra/stress-test/k6/auth-flow.js -e BASE_URL=http://<ip>
+config:
+  merb-starterpack-infra:region: sgp1
+  merb-starterpack-infra:dropletSize: s-4vcpu-8gb

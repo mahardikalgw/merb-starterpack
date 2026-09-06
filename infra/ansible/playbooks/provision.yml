@@ -1,0 +1,9 @@
+---
+# Full server provisioning: base config + Docker.
+# Usage: ansible-playbook -u root playbooks/provision.yml -i inventory/<env>/...
+- name: Provision server (base + Docker)
+  hosts: merb_servers
+  become: true
+  roles:
+    - common
+    - docker

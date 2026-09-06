@@ -1,0 +1,3 @@
+---
+# stress-test environment (target for k6 load tests)
+app_domain: stress.merb.example.com

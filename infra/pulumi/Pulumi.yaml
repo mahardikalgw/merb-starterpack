@@ -1,0 +1,6 @@
+name: merb-starterpack-infra
+runtime: nodejs
+description: >-
+  IaaS provisioning for merb-starterpack.
+  One Pulumi stack per environment:
+  development | staging | stress-test | production

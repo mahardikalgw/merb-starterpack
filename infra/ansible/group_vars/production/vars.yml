@@ -1,0 +1,4 @@
+---
+# production environment
+app_domain: merb.example.com
+seed_on_start: "false"   # admin already seeded in staging; disable auto-seed in prod

@@ -1,0 +1,109 @@
+---
+# Base server configuration: packages, deploy user, hardening.
+# Runs as root (provision playbook uses -u root).
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name:
+      - git
+      - curl
+      - gnupg
+      - ca-certificates
+      - ufw
+      - fail2ban
+      - unattended-upgrades
+      - python3
+    state: present
+
+- name: Create app group
+  ansible.builtin.group:
+    name: "{{ app_group }}"
+    state: present
+
+- name: Create app user
+  ansible.builtin.user:
+    name: "{{ app_user }}"
+    group: "{{ app_group }}"
+    shell: /bin/bash
+    groups: [sudo]
+    append: true
+    state: present
+
+- name: Authorize deploy SSH key
+  ansible.builtin.lineinfile:
+    path: "/home/{{ app_user }}/.ssh/authorized_keys"
+    line: "{{ vault_ssh_public_key }}"
+    create: true
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0600"
+    state: present
+
+- name: Ensure .ssh dir ownership
+  ansible.builtin.file:
+    path: "/home/{{ app_user }}/.ssh"
+    state: directory
+    owner: "{{ app_user }}"
+    group: "{{ app_group }}"
+    mode: "0700"
+
+# --- SSH hardening (drop-in, safe: key-only auth, no root password logins) ---
+- name: Configure SSH hardening
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-merb-hardening.conf
+    content: |
+      # Managed by Ansible — merb-starterpack
+      PasswordAuthentication no
+      PermitRootLogin prohibit-password
+      X11Forwarding no
+      MaxAuthTries 4
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart ssh
+
+# --- Fail2ban: protect SSH ---
+- name: Configure fail2ban for sshd
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+      maxretry = 5
+      bantime = 1h
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+# --- UFW firewall ---
+- name: Allow SSH, HTTP, HTTPS
+  ansible.builtin.command: "ufw allow {{ item }}/tcp"
+  loop: "{{ fw_allowed_tcp_ports }}"
+  loop_control:
+    label: "{{ item }}/tcp"
+  changed_when: false
+
+- name: Set default policies & enable UFW
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - ufw default deny incoming
+    - ufw default allow outgoing
+    - ufw --force enable
+  changed_when: false
+
+# --- Automatic security updates ---
+- name: Enable unattended security upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+    owner: root
+    group: root
+    mode: "0644"

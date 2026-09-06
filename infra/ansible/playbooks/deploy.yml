@@ -1,0 +1,7 @@
+---
+# Deploy/update the application.
+# Usage: ansible-playbook playbooks/deploy.yml -i inventory/<env>/...
+- name: Deploy application
+  hosts: merb_servers
+  roles:
+    - app

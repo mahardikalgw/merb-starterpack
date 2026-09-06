@@ -1,0 +1,6 @@
+# production — production sizing
+# RECOMMENDED for real production: use managed MongoDB (Atlas) + managed Redis
+# and point MONGODB_URI / REDIS_URL at them in the Ansible vault.
+config:
+  merb-starterpack-infra:region: sgp1
+  merb-starterpack-infra:dropletSize: s-4vcpu-8gb
