@@ -1,6 +1,6 @@
 # Merb Starterpack
 
-Full-stack starter kit with **Bun**, featuring production-ready **authentication, role-based authorization (RBAC), MongoDB, and BullMQ email notifications** — plus Docker orchestration and a complete CI/CD pipeline with GitHub Actions.
+Full-stack **Turborepo** monorepo starter kit with **Bun**, featuring production-ready **authentication, role-based authorization (RBAC), MongoDB, and BullMQ email notifications** — plus Docker orchestration and a complete CI/CD pipeline with GitHub Actions.
 
 ## ✨ Features
 
@@ -11,6 +11,7 @@ Full-stack starter kit with **Bun**, featuring production-ready **authentication
 | 🍃 **Database** | MongoDB with Mongoose — User, Role, Token models with TTL cleanup |
 | 📧 **Email notifications** | BullMQ + Redis queue, dedicated worker process, HTML templates, retry with exponential backoff, graceful dev fallback (logs instead of sends) |
 | 🏃 **Runtime** | 100% [Bun](https://bun.sh) — runtime, package manager, test runner, bundler |
+| ⚡ **Monorepo** | [Turborepo](https://turbo.build) — parallel tasks, remote-style caching across backend & frontend |
 | 🎨 **Frontend** | TanStack Start (React 19) with login / register / protected dashboard pages |
 | 🐳 **Docker** | Multi-stage `oven/bun:1` image, Compose stack (api + worker + mongo + redis) with healthchecks |
 | 🔄 **CI/CD** | GitHub Actions: typecheck → test → frontend build → Docker build (GHA cache) → **full-stack compose smoke test** |
@@ -20,6 +21,9 @@ Full-stack starter kit with **Bun**, featuring production-ready **authentication
 
 ```
 merb-starterpack/
+├── turbo.json                # Turborepo task pipeline
+├── package.json              # workspace root (bun workspaces + turbo)
+├── bun.lock                  # single lockfile for the whole monorepo
 ├── backend/                  # Bun + Express 5 + Mongoose API
 │   ├── src/
 │   │   ├── config/           # env + MongoDB connection
@@ -52,8 +56,7 @@ merb-starterpack/
 ### 1. Install & configure
 
 ```sh
-bun install --frozen-lockfile         # backend deps
-cd frontend && bun install && cd ..   # frontend deps
+bun install   # installs all workspace deps (backend + frontend) via bun workspaces
 
 cp backend/.env.example backend/.env  # adjust if needed
 ```
@@ -69,14 +72,16 @@ docker compose up -d mongo redis
 ### 3. Run everything
 
 ```sh
-# Terminal 1 — API (http://localhost:3000)
-bun run dev:backend
+bun run dev          # turbo: backend (:3000) + frontend (:5173) in parallel
+bun run dev:worker   # email worker (separate terminal)
+```
 
-# Terminal 2 — email worker
-bun run dev:worker
+Or run pieces individually:
 
-# Terminal 3 — frontend (http://localhost:5173)
-bun run dev:frontend
+```sh
+bun run dev:backend   # API only
+bun run dev:frontend  # frontend only
+bun run dev:worker    # email worker only
 ```
 
 On first boot the API **auto-seeds** system roles (`admin`, `user`) and an admin account (`SEED_ON_START=true`).
@@ -216,40 +221,37 @@ Services:
 
 `.github/workflows/ci.yml` runs on every push / PR to `main`:
 
-1. **Backend** — Bun setup → `bun install --frozen-lockfile` → typecheck (`tsc --noEmit`) → `bun test`
-2. **Frontend** — Bun setup → install → production build
+1. **Backend** — workspace install → turbo typecheck → turbo test
+2. **Frontend** — workspace install → turbo build
 3. **Docker** — multi-stage image build (with GHA layer cache) + `docker compose config` validation
 4. **Smoke test** *(on push to main)* — boots the full compose stack, waits for health, then exercises register → login → `/auth/me` end-to-end
 
 To deploy from CI, add your registry/deploy credentials under **Settings → Secrets and variables → Actions** and extend the `docker` job with a `push` step.
 
-## 🧪 Testing & Quality
+## 🧪 Testing & Quality (via Turborepo)
+
+Tasks run in parallel across workspaces, with caching — reruns are instant:
 
 ```sh
-bun run typecheck   # tsc --noEmit (backend)
-bun run test        # bun test (backend)
-cd frontend && bun run build   # frontend typecheck + build
+bun run typecheck   # turbo run typecheck (backend + frontend)
+bun run test        # turbo run test (backend)
+bun run build       # turbo run build (frontend; backend has no build step)
+bun run lint        # turbo run lint (frontend)
 ```
 
 ## 📜 Scripts (root `package.json`)
 
 | Script | Description |
 | --- | --- |
+| `bun run dev` | **Turbo** — backend + frontend dev servers in parallel |
 | `bun run dev:backend` | API with hot reload |
 | `bun run dev:worker` | Email worker |
 | `bun run dev:frontend` | Frontend dev server (:5173) |
+| `bun run build` | Turbo build (frontend) |
+| `bun run typecheck` / `test` / `lint` | Turbo tasks across workspaces |
 | `bun run seed` | Seed roles + admin user |
-| `bun run test` | Backend tests |
 | `bun run stack:up` | Start mongo + redis only |
 | `bun run stack:full` | Full stack via Docker Compose |
-
-## 🗺️ Roadmap / Ideas
-
-- [ ] Email verification flow (verify token on register)
-- [ ] Rate limiting on auth endpoints
-- [ ] Audit log collection
-- [ ] Frontend admin UI for roles & users
-- [ ] Refresh token storage in httpOnly cookies
 
 ---
 

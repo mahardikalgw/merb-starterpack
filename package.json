@@ -1,15 +1,23 @@
 {
   "name": "merb-starterpack",
   "private": true,
+  "packageManager": "bun@1.4.0",
+  "workspaces": ["backend", "frontend"],
   "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
     "dev:backend": "bun --cwd backend dev",
     "dev:frontend": "bun --cwd frontend dev",
     "dev:worker": "bun --cwd backend worker",
     "seed": "bun --cwd backend seed",
-    "test": "bun --cwd backend test",
-    "typecheck": "bun --cwd backend typecheck",
     "stack:up": "docker compose up -d mongo redis",
     "stack:down": "docker compose down",
     "stack:full": "docker compose up --build"
+  },
+  "devDependencies": {
+    "turbo": "^2"
   }
 }

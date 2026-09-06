@@ -1,0 +1,34 @@
+# VCS & CI
+.git
+.github
+
+# Dependencies (installed inside the image)
+**/node_modules
+
+# Env & secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Logs & caches
+.logs
+**/*.log
+**/.cache
+**/.turbo
+**/*.tsbuildinfo
+
+# Frontend (not needed for the backend image)
+frontend
+
+# Docs & misc
+**/*.md
+**/tests
+**/.storybook
+**/.vscode
+**/.idea
+**/.DS_Store
+
+# Docker files themselves
+Dockerfile
+**/Dockerfile
+.dockerignore
